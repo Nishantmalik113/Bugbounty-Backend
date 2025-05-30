@@ -1,47 +1,49 @@
-// server.js
 import express from 'express';
-import cors from 'cors';
 import puppeteer from 'puppeteer';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+const PORT = process.env.PORT || 10000;
 
+app.use(express.json());
+
+// Basic health check
+app.get('/', (req, res) => {
+  res.send('BugBounty backend is live!');
+});
+
+// POST endpoint to run scan
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
-
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
+  if (!url || !url.startsWith('http')) {
+    return res.status(400).json({ error: 'Invalid URL' });
   }
 
   try {
-    // Launch puppeteer (it will download and use Chromium automatically)
+    // Launch puppeteer with bundled Chromium
     const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle0' });
+    await page.goto(url, { waitUntil: 'networkidle2' });
 
-    // Example: capture a screenshot (can replace with your actual scan logic)
-    const screenshotBuffer = await page.screenshot({ fullPage: true });
+    // Run a basic performance audit
+    const metrics = await page.metrics();
 
     await browser.close();
 
-    res.status(200).json({
-      message: 'Scan completed!',
-      screenshot: screenshotBuffer.toString('base64') // send as base64 string
+    res.json({
+      message: 'Scan successful',
+      url,
+      metrics
     });
   } catch (err) {
     console.error('Error during scan:', err);
-    res.status(500).json({ error: 'Scan failed', details: err.message });
+    res.status(500).json({ error: 'Scan failed' });
   }
 });
 
-const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
