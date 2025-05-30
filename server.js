@@ -1,43 +1,61 @@
 // server.js
-const express = require('express');
-const lighthouse = require('lighthouse');
-const chromeLauncher = require('chrome-launcher');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
+import lighthouse from 'lighthouse';
+import puppeteer from 'puppeteer';
 
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 10000;
 
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
-
   if (!url || !url.startsWith('http')) {
     return res.status(400).json({ error: 'Invalid URL' });
   }
 
+  let browser;
   try {
-    const chrome = await chromeLauncher.launch({ chromeFlags: ['--headless'] });
-    const options = { logLevel: 'info', output: 'json', port: chrome.port };
-    const result = await lighthouse(url, options);
-    await chrome.kill();
-
-    const audits = result.lhr.audits;
-    const issues = Object.values(audits)
-      .filter(a => a.score !== null && a.score < 0.9)
-      .map(a => ({
-        id: a.id,
-        title: a.title,
-        description: a.description,
+    // Launch headless Chrome
+    browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      headless: true,
+    });
+    const { lhr } = await lighthouse(url, {
+      port: new URL(browser.wsEndpoint()).port,
+      output: 'json',
+      onlyCategories: ['performance', 'accessibility', 'seo'],
+    });
+    const issues = Object.values(lhr.audits)
+      .filter((audit) => audit.score !== null && audit.score < 0.9)
+      .map((audit) => ({
+        id: audit.id,
+        title: audit.title,
+        description: audit.description,
+        details: audit.details,
       }));
 
-    res.json({ issues });
+    res.json({
+      url: lhr.finalUrl,
+      performance: lhr.categories.performance.score,
+      accessibility: lhr.categories.accessibility.score,
+      seo: lhr.categories.seo.score,
+      issues,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Scan failed' });
+    res.status(500).json({ error: 'Scan failed', details: err.message });
+  } finally {
+    if (browser) await browser.close();
   }
 });
 
-app.get('/', (_, res) => res.send('BugBounty Scan API is running'));
+app.get('/', (req, res) => {
+  res.send('BugBounty Backend: Use POST /scan');
+});
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
