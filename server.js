@@ -1,61 +1,47 @@
 // server.js
 import express from 'express';
 import cors from 'cors';
-import lighthouse from 'lighthouse';
 import puppeteer from 'puppeteer';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
-app.use(cors());
 app.use(express.json());
-
-const PORT = process.env.PORT || 10000;
+app.use(cors());
 
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
-  if (!url || !url.startsWith('http')) {
-    return res.status(400).json({ error: 'Invalid URL' });
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
   }
 
-  let browser;
   try {
-    // Launch headless Chrome
-    browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
+    // Launch puppeteer (it will download and use Chromium automatically)
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-    const { lhr } = await lighthouse(url, {
-      port: new URL(browser.wsEndpoint()).port,
-      output: 'json',
-      onlyCategories: ['performance', 'accessibility', 'seo'],
-    });
-    const issues = Object.values(lhr.audits)
-      .filter((audit) => audit.score !== null && audit.score < 0.9)
-      .map((audit) => ({
-        id: audit.id,
-        title: audit.title,
-        description: audit.description,
-        details: audit.details,
-      }));
 
-    res.json({
-      url: lhr.finalUrl,
-      performance: lhr.categories.performance.score,
-      accessibility: lhr.categories.accessibility.score,
-      seo: lhr.categories.seo.score,
-      issues,
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle0' });
+
+    // Example: capture a screenshot (can replace with your actual scan logic)
+    const screenshotBuffer = await page.screenshot({ fullPage: true });
+
+    await browser.close();
+
+    res.status(200).json({
+      message: 'Scan completed!',
+      screenshot: screenshotBuffer.toString('base64') // send as base64 string
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error during scan:', err);
     res.status(500).json({ error: 'Scan failed', details: err.message });
-  } finally {
-    if (browser) await browser.close();
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('BugBounty Backend: Use POST /scan');
-});
-
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
