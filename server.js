@@ -1,44 +1,41 @@
-import express from "express";
-import cors from "cors";
-import puppeteer from "puppeteer";
-import chromium from "@sparticuz/chromium";
+import express from 'express';
+import cors from 'cors';
+import chromium from "chromium";
+import puppeteer from "puppeteer-core";
+
+const browser = await puppeteer.launch({
+  executablePath: chromium.path,
+  args: chromium.args,
+  defaultViewport: chromium.defaultViewport,
+  headless: chromium.headless,
+});
+
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+
 app.use(cors());
 app.use(express.json());
 
-app.post("/scan", async (req, res) => {
+app.post('/scan', async (req, res) => {
   const { url } = req.body;
-
-  if (!url || !url.startsWith("http")) {
-    return res.status(400).json({ error: "Invalid URL" });
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
   }
 
   try {
     const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: chromium.path, // Correct usage
-      headless: chromium.headless,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-
     const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    // Block images, stylesheets, and fonts for faster load
-    await page.setRequestInterception(true);
-    page.on("request", (req) => {
-      const resourceType = req.resourceType();
-      if (["image", "stylesheet", "font"].includes(resourceType)) {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
-
-    // Increased timeout to 2 minutes
-    await page.goto(url, { waitUntil: "load", timeout: 120000 });
+    // Example scan logic: get page title
 
     const title = await page.title();
+
+    // Example audit: collect performance metrics
     const metrics = await page.metrics();
 
     await browser.close();
@@ -46,13 +43,18 @@ app.post("/scan", async (req, res) => {
     res.json({
       url,
       title,
-      metrics,
+      metrics
     });
-  } catch (error) {
-    console.error("Error during scan:", error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Error during scan:', err.message);
+    res.status(500).json({ error: 'Scan failed' });
   }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.get('/', (req, res) => {
+  res.send('BugBounty Backend is running!');
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
