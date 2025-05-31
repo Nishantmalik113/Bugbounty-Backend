@@ -15,7 +15,7 @@ app.post('/scan', async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      executablePath: await chromium.executablePath(),
+      executablePath: chromium.path,   // 👈 Use `chromium.path` as the executablePath
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       headless: chromium.headless,
