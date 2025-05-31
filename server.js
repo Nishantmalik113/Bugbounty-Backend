@@ -1,6 +1,7 @@
-import express from 'express'; // ADD THIS LINE!
+import express from 'express';
 import cors from 'cors';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from 'chromium'; // add this!
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,9 +15,12 @@ app.post('/scan', async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      executablePath: chromium.executablePath, // use chromium binary
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      headless: chromium.headless,
     });
+
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
