@@ -1,4 +1,6 @@
-import puppeteer from "puppeteer"; // instead of puppeteer-core & chromium
+import express from 'express'; // ADD THIS LINE!
+import cors from 'cors';
+import puppeteer from 'puppeteer';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
