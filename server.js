@@ -2,6 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer';
 
+const browser = await puppeteer.launch({
+  headless: true,
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+});
+
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
