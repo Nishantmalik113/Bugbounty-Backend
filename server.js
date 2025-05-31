@@ -1,10 +1,13 @@
 import express from 'express';
 import cors from 'cors';
-import puppeteer from 'puppeteer';
+import chromium from "chromium";
+import puppeteer from "puppeteer-core";
 
 const browser = await puppeteer.launch({
-  headless: true,
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  executablePath: chromium.path,
+  args: chromium.args,
+  defaultViewport: chromium.defaultViewport,
+  headless: chromium.headless,
 });
 
 
@@ -29,7 +32,7 @@ app.post('/scan', async (req, res) => {
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
     // Example scan logic: get page title
-    
+
     const title = await page.title();
 
     // Example audit: collect performance metrics
