@@ -8,7 +8,6 @@ app.use(cors());
 app.use(express.json());
 
 app.post("/scan", async (req, res) => {
-  
   const { url } = req.body;
 
   if (!url || !url.startsWith("http")) {
