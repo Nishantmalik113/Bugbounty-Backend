@@ -1,45 +1,58 @@
-import express from 'express';
-import cors from 'cors';
-import puppeteer from 'puppeteer-core';
-import chromium from 'chromium';
+import express from "express";
+import cors from "cors";
+import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
 app.use(cors());
 app.use(express.json());
 
-app.post('/scan', async (req, res) => {
+app.post("/scan", async (req, res) => {
   const { url } = req.body;
-  if (!url) return res.status(400).json({ error: 'URL is required' });
+
+  if (!url || !url.startsWith("http")) {
+    return res.status(400).json({ error: "Invalid URL" });
+  }
 
   try {
     const browser = await puppeteer.launch({
-      executablePath: chromium.path,   // 👈 Use `chromium.path` as the executablePath
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
+      executablePath: chromium.path, // Correct usage
       headless: chromium.headless,
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+    // Block images, stylesheets, and fonts for faster load
+    await page.setRequestInterception(true);
+    page.on("request", (req) => {
+      const resourceType = req.resourceType();
+      if (["image", "stylesheet", "font"].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // Increased timeout to 2 minutes
+    await page.goto(url, { waitUntil: "load", timeout: 120000 });
 
     const title = await page.title();
     const metrics = await page.metrics();
 
     await browser.close();
 
-    res.json({ url, title, metrics });
-  } catch (err) {
-    console.error('Error during scan:', err.message);
-    res.status(500).json({ error: 'Scan failed' });
+    res.json({
+      url,
+      title,
+      metrics,
+    });
+  } catch (error) {
+    console.error("Error during scan:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/', (req, res) => {
-  res.send('BugBounty Backend is running!');
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
