@@ -1,15 +1,4 @@
-import express from 'express';
-import cors from 'cors';
-import chromium from "chromium";
-import puppeteer from "puppeteer-core";
-
-const browser = await puppeteer.launch({
-  executablePath: chromium.path,
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  headless: chromium.headless,
-});
-
+import puppeteer from "puppeteer"; // instead of puppeteer-core & chromium
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,9 +8,7 @@ app.use(express.json());
 
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
-  }
+  if (!url) return res.status(400).json({ error: 'URL is required' });
 
   try {
     const browser = await puppeteer.launch({
@@ -31,20 +18,12 @@ app.post('/scan', async (req, res) => {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    // Example scan logic: get page title
-
     const title = await page.title();
-
-    // Example audit: collect performance metrics
     const metrics = await page.metrics();
 
     await browser.close();
 
-    res.json({
-      url,
-      title,
-      metrics
-    });
+    res.json({ url, title, metrics });
   } catch (err) {
     console.error('Error during scan:', err.message);
     res.status(500).json({ error: 'Scan failed' });
