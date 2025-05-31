@@ -1,47 +1,48 @@
 import express from 'express';
+import cors from 'cors';
 import puppeteer from 'puppeteer';
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 5000;
 
+app.use(cors());
 app.use(express.json());
 
-// Basic health check
-app.get('/', (req, res) => {
-  res.send('BugBounty backend is live!');
-});
-
-// POST endpoint to run scan
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
-  if (!url || !url.startsWith('http')) {
-    return res.status(400).json({ error: 'Invalid URL' });
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
   }
 
   try {
-    // Launch puppeteer with bundled Chromium
     const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    // Run a basic performance audit
+    // Example scan logic: get page title
+    const title = await page.title();
+
+    // Example audit: collect performance metrics
     const metrics = await page.metrics();
 
     await browser.close();
 
     res.json({
-      message: 'Scan successful',
       url,
+      title,
       metrics
     });
   } catch (err) {
-    console.error('Error during scan:', err);
+    console.error('Error during scan:', err.message);
     res.status(500).json({ error: 'Scan failed' });
   }
+});
+
+app.get('/', (req, res) => {
+  res.send('BugBounty Backend is running!');
 });
 
 app.listen(PORT, () => {
