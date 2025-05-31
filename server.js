@@ -1,58 +1,53 @@
+// server.js
 import express from 'express';
 import cors from 'cors';
-import chromium from "chromium";
-import puppeteer from "puppeteer-core";
-
-const browser = await puppeteer.launch({
-  executablePath: chromium.path,
-  args: chromium.args,
-  defaultViewport: chromium.defaultViewport,
-  headless: chromium.headless,
-});
-
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(express.json());
 
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
-  if (!url) {
-    return res.status(400).json({ error: 'URL is required' });
+
+  if (!url || !url.startsWith('http')) {
+    return res.status(400).json({ error: 'Invalid URL. Must start with http/https' });
   }
 
   try {
+    console.log('Launching headless browser...');
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
+
+    console.log('Opening new page...');
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 0 });
 
-    // Example scan logic: get page title
-
-    const title = await page.title();
-
-    // Example audit: collect performance metrics
+    console.log('Extracting page metrics...');
     const metrics = await page.metrics();
 
     await browser.close();
 
     res.json({
       url,
-      title,
-      metrics
+      metrics,
+      message: 'Scan completed successfully!'
     });
-  } catch (err) {
-    console.error('Error during scan:', err.message);
-    res.status(500).json({ error: 'Scan failed' });
+  } catch (error) {
+    console.error('Error during scan:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.get('/', (req, res) => {
-  res.send('BugBounty Backend is running!');
+  res.send('BugBounty backend is running!');
 });
 
 app.listen(PORT, () => {
