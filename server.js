@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import puppeteer from 'puppeteer-core';
-import chromium from 'chromium'; // add this!
+import chromium from 'chromium';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,7 +15,7 @@ app.post('/scan', async (req, res) => {
 
   try {
     const browser = await puppeteer.launch({
-      executablePath: chromium.executablePath, // use chromium binary
+      executablePath: await chromium.executablePath(),
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       headless: chromium.headless,
