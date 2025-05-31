@@ -29,6 +29,7 @@ app.post('/scan', async (req, res) => {
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
     // Example scan logic: get page title
+    
     const title = await page.title();
 
     // Example audit: collect performance metrics
