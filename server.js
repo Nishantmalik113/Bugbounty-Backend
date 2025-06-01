@@ -20,10 +20,11 @@ app.post('/scan', async (req, res) => {
   let browser;
   try {
     console.log('Launching headless browser...');
-    browser = await puppeteer.launch({
+    const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
+
 
     console.log('Running Lighthouse audit...');
     const { lhr } = await lighthouse(url, {
