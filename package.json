@@ -1,21 +1,16 @@
 {
   "name": "bugbounty-backend",
   "version": "1.0.0",
-  "description": "Backend for BugBounty with Puppeteer",
+  "description": "BugBounty backend using Puppeteer and Lighthouse",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^133.0.0",
-    "chromium": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "lighthouse": "^12.6.0",
-    "puppeteer": "^24.9.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "puppeteer": "^22.15.0"
   }
 }

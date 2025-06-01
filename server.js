@@ -54,6 +54,7 @@ app.post('/scan', async (req, res) => {
   }
 });
 
+
 app.get('/', (req, res) => {
   res.send('BugBounty backend is running!');
 });
