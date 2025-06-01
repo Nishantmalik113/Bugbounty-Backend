@@ -25,7 +25,6 @@ app.post('/scan', async (req, res) => {
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
-
     console.log('Running Lighthouse audit...');
     const { lhr } = await lighthouse(url, {
       port: new URL(browser.wsEndpoint()).port,
